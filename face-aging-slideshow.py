@@ -16,18 +16,13 @@ def find_and_store_faces():
     image_dict = {}
     py = pathlib.Path().glob(photos_path + "/*.jpg")
 
-    count = 0
-
     for file in py:
-        face_image = get_face_image(str(file))
+        face_image = get_face_image(file)
         if face_image is not None:
             date_taken = get_photo_date_taken(str(file))
             if date_taken:
                 face_path = faces_path + "/" + date_taken + ".jpg"
                 cv2.imwrite(face_path, cv2.cvtColor(face_image, cv2.COLOR_RGB2BGR))
-                count += 1
-                if count == 5:
-                    return
     
 
 def get_photo_date_taken(path):
@@ -41,16 +36,32 @@ def get_photo_date_taken(path):
     return date_taken
 
 
-def get_face_image(path):
+def get_face_image(file):
+    print("Scanning " + str(file))
 
-    # load image and find face locations.
-    image = face_recognition.load_image_file(path)
-    face_locations = face_recognition.face_locations(image, model="hog")
+    cache_file_path = cache_path + "/" + file.name + ".json"
+    if os.path.exists(cache_file_path):
+        with open(cache_file_path, 'r') as f:
+            dict = json.load(f)
+            face_locations = dict["face_locations"]
+            face_landmarks = dict["face_landmarks"]
+    else:
+        # load image and find face locations
+        image = face_recognition.load_image_file(str(file))
+        face_locations = face_recognition.face_locations(image, model="hog")
 
-    # detect 68-landmarks from image. This includes left eye, right eye, lips, eye brows, nose and chins
-    face_landmarks = face_recognition.face_landmarks(image)
+        # detect 68-landmarks from image. This includes left eye, right eye, lips, eye brows, nose and chins
+        face_landmarks = face_recognition.face_landmarks(image)
 
-    if len(face_landmarks) == 0:
+        data = {}
+        data["face_locations"] = face_locations
+        data["face_landmarks"] = face_landmarks
+        with open(cache_file_path, 'w') as outfile:
+            json.dump(data, outfile)
+
+
+    # skip if there isn't one face
+    if len(face_landmarks) != 1:
         return None
 
     '''
@@ -140,6 +151,7 @@ def write_movie():
 size = (256, 456)
 days_per_min = 365
 photos_path = "photos"
+cache_path = "cache"
 faces_path = "faces"
 
 delete_old_faces()
