@@ -4,6 +4,12 @@ import cv2
 import numpy as np
 import pathlib
 import json
+import concurrent.futures
+
+
+def convert_heic_photos():
+    files = pathlib.Path().glob(photos_path + "/*.heic")
+
 
 
 def delete_old_faces():
@@ -13,19 +19,9 @@ def delete_old_faces():
 
 
 def find_and_store_faces():
-    image_dict = {}
-    py = pathlib.Path().glob(photos_path + "/IMG_*.*")
-
-    for file in sorted(py):
-        if file.suffix.lower() != ".jpg":
-            continue
-
-        face_image = get_face_image(file)
-        if face_image is not None:
-            date_taken = get_photo_date_taken(str(file))
-            if date_taken:
-                face_path = faces_path + "/" + date_taken + " - " + file.stem + ".jpg"
-                cv2.imwrite(face_path, cv2.cvtColor(face_image, cv2.COLOR_RGB2BGR))
+    with concurrent.futures.ProcessPoolExecutor() as executor:
+        photo_files = pathlib.Path().glob(photos_path + "/IMG_*.*")
+        executor.map(save_face_image, photo_files)
     
 
 def get_photo_date_taken(path):
@@ -39,7 +35,10 @@ def get_photo_date_taken(path):
     return date_taken
 
 
-def get_face_image(file):
+def save_face_image(file):
+    if file.suffix.lower() != ".jpg":
+        return None
+
     print("Scanning " + str(file))
 
     cache_file_path = cache_path + "/" + file.name + ".json"
@@ -137,7 +136,10 @@ def get_face_image(file):
 
     # image = cv2.resize(output, size, interpolation = cv2.INTER_CUBIC)
 
-    return output
+    date_taken = get_photo_date_taken(str(file))
+    if date_taken:
+        face_path = faces_path + "/" + date_taken + " - " + file.stem + ".jpg"
+        cv2.imwrite(face_path, cv2.cvtColor(output, cv2.COLOR_RGB2BGR))
 
 
 def write_movie():
