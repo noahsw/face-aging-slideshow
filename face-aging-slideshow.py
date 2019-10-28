@@ -14,14 +14,17 @@ def delete_old_faces():
 
 def find_and_store_faces():
     image_dict = {}
-    py = pathlib.Path().glob(photos_path + "/*.jpg")
+    py = pathlib.Path().glob(photos_path + "/IMG_*.*")
 
-    for file in py:
+    for file in sorted(py):
+        if file.suffix.lower() != ".jpg":
+            continue
+
         face_image = get_face_image(file)
         if face_image is not None:
             date_taken = get_photo_date_taken(str(file))
             if date_taken:
-                face_path = faces_path + "/" + date_taken + ".jpg"
+                face_path = faces_path + "/" + date_taken + " - " + file.stem + ".jpg"
                 cv2.imwrite(face_path, cv2.cvtColor(face_image, cv2.COLOR_RGB2BGR))
     
 
@@ -45,6 +48,10 @@ def get_face_image(file):
             dict = json.load(f)
             face_locations = dict["face_locations"]
             face_landmarks = dict["face_landmarks"]
+        if len(face_landmarks) == 1:
+            image = face_recognition.load_image_file(str(file))
+        else:
+            return None
     else:
         # load image and find face locations
         image = face_recognition.load_image_file(str(file))
@@ -59,10 +66,9 @@ def get_face_image(file):
         with open(cache_file_path, 'w') as outfile:
             json.dump(data, outfile)
 
-
-    # skip if there isn't one face
-    if len(face_landmarks) != 1:
-        return None
+        # skip if there isn't one face
+        if len(face_landmarks) != 1:
+            return None
 
     '''
     Let's find the angle of the face. First calculate 
@@ -78,9 +84,9 @@ def get_face_image(file):
     rightEyeCenter = (rightEyeCenter[0],rightEyeCenter[1])
 
     # draw the circle at centers and line connecting to them
-    cv2.circle(image, leftEyeCenter, 2, (255, 0, 0), 10)
-    cv2.circle(image, rightEyeCenter, 2, (255, 0, 0), 10)
-    cv2.line(image, leftEyeCenter, rightEyeCenter, (255, 0, 0), 10)
+    # cv2.circle(image, leftEyeCenter, 2, (255, 0, 0), 10)
+    # cv2.circle(image, rightEyeCenter, 2, (255, 0, 0), 10)
+    # cv2.line(image, leftEyeCenter, rightEyeCenter, (255, 0, 0), 10)
 
     # find the angle of line by using slop of the line.
     dY = rightEyeCenter[1] - leftEyeCenter[1]
