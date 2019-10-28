@@ -6,19 +6,29 @@ import pathlib
 import json
 
 
-def build_image_list():
+def delete_old_faces():
+    files = pathlib.Path().glob(faces_path + "/*.jpg")
+    for f in files:
+        os.remove(f)
+
+
+def find_and_store_faces():
     image_dict = {}
     py = pathlib.Path().glob(photos_path + "/*.jpg")
-    for file in py:
-        date_taken = get_photo_date_taken(str(file))
-        if date_taken:
-            image_dict[date_taken] = str(file)
-    
-    image_list = []
-    for elem in sorted(image_dict.keys()):
-        image_list.append(image_dict[elem])
-    return image_list
 
+    count = 0
+
+    for file in py:
+        face_image = get_face_image(str(file))
+        if face_image is not None:
+            date_taken = get_photo_date_taken(str(file))
+            if date_taken:
+                face_path = faces_path + "/" + date_taken + ".jpg"
+                cv2.imwrite(face_path, cv2.cvtColor(face_image, cv2.COLOR_RGB2BGR))
+                count += 1
+                if count == 5:
+                    return
+    
 
 def get_photo_date_taken(path):
     json_path = path + ".json"
@@ -34,14 +44,17 @@ def get_photo_date_taken(path):
 def get_face_image(path):
 
     # load image and find face locations.
-    image = face_recognition.load_image_file("IMG_0919.jpg")
+    image = face_recognition.load_image_file(path)
     face_locations = face_recognition.face_locations(image, model="hog")
 
     # detect 68-landmarks from image. This includes left eye, right eye, lips, eye brows, nose and chins
     face_landmarks = face_recognition.face_landmarks(image)
 
+    if len(face_landmarks) == 0:
+        return None
+
     '''
-    Let's find and angle of the face. First calculate 
+    Let's find the angle of the face. First calculate 
     the center of left and right eye by using eye landmarks.
     '''
     leftEyePts = face_landmarks[0]['left_eye']
@@ -56,9 +69,9 @@ def get_face_image(path):
     # draw the circle at centers and line connecting to them
     cv2.circle(image, leftEyeCenter, 2, (255, 0, 0), 10)
     cv2.circle(image, rightEyeCenter, 2, (255, 0, 0), 10)
-    cv2.line(image, leftEyeCenter, rightEyeCenter, (255,0,0), 10)
+    cv2.line(image, leftEyeCenter, rightEyeCenter, (255, 0, 0), 10)
 
-    # find and angle of line by using slop of the line.
+    # find the angle of line by using slop of the line.
     dY = rightEyeCenter[1] - leftEyeCenter[1]
     dX = rightEyeCenter[0] - leftEyeCenter[0]
     angle = np.degrees(np.arctan2(dY, dX))
@@ -67,10 +80,10 @@ def get_face_image(path):
     # set desired left eye location. Right eye location 
     # will be found out by using left eye location.
     # this location is in percentage.
-    desiredLeftEye=(0.35, 0.35)
-    #Set the croped image(face) size after rotaion.
-    desiredFaceWidth = 128
-    desiredFaceHeight = 128
+    desiredLeftEye = (0.35, 0.5)
+    #Set the cropped image(face) size after rotaion.
+    desiredFaceWidth = 256
+    desiredFaceHeight = 456
 
     desiredRightEyeX = 1.0 - desiredLeftEye[0]
     
@@ -93,39 +106,43 @@ def get_face_image(path):
 
     # update the translation component of the matrix
     tX = desiredFaceWidth * 0.5
-    tY = desiredFaceHeight * desiredLeftEye[1]
+    tY = desiredFaceHeight * desiredLeftEye[1] # + 40
+
     M[0, 2] += (tX - eyesCenter[0])
     M[1, 2] += (tY - eyesCenter[1])
 
     # apply the affine transformation
     (w, h) = (desiredFaceWidth, desiredFaceHeight)
-    (y2,x2,y1,x1) = face_locations[0] 
-            
+    (y2,x2,y1,x1) = face_locations[0]
+
     output = cv2.warpAffine(image, M, (w, h),
         flags=cv2.INTER_CUBIC)
 
-    image = cv2.resize(image, (300, 400), interpolation = cv2.INTER_CUBIC)
+    # image = cv2.resize(output, size, interpolation = cv2.INTER_CUBIC)
 
-    return image
+    return output
 
 
-def write_movie(file_paths):
-    vvw = cv2.VideoWriter('slideshow.mp4', cv2.VideoWriter_fourcc(*'avc1'), 30, size)
+def write_movie():
+    vvw = cv2.VideoWriter(faces_path + "/slideshow.mp4", cv2.VideoWriter_fourcc(*'avc1'), 30, size)
 
-    for file_path in file_paths:
-        print(file_path)
-        frame = cv2.imread("./" + file_path)
-        resized_frame = cv2.resize(frame, size, interpolation = cv2.INTER_CUBIC)
+    py = pathlib.Path().glob(faces_path + "/*.jpg")
+    for file in py:
+        frame = cv2.imread("./" + str(file))
+
         for x in range(1, 15):
-            vvw.write(resized_frame)
+            vvw.write(frame)
+
     vvw.release()
 
 
 
-size = (1280, 720)
+size = (256, 456)
 days_per_min = 365
 photos_path = "photos"
+faces_path = "faces"
 
-image_list = build_image_list()
-write_movie(image_list)
+delete_old_faces()
+find_and_store_faces()
+write_movie()
 
