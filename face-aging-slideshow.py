@@ -161,7 +161,11 @@ def save_face_image(file):
 
 
 def write_movie():
-    vvw = cv2.VideoWriter(faces_path + "/slideshow.mp4", cv2.VideoWriter_fourcc(*'avc1'), 30, size)
+    movie_path = faces_path + "/slideshow.mp4"
+    if os.path.exists(movie_path):
+        os.remove(movie_path)
+
+    vvw = cv2.VideoWriter(movie_path, cv2.VideoWriter_fourcc(*'avc1'), 30, size)
 
     py = pathlib.Path().glob(faces_path + "/*.jpg")
     for file in py:
