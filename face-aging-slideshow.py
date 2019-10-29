@@ -19,6 +19,15 @@ def delete_old_faces():
         os.remove(f)
 
 
+def get_known_face_encodings(known_face_paths):
+    known_encodings = []
+    for known_face_path in known_face_paths:
+        image = face_recognition.load_image_file(known_face_path)
+        known_encodings.append(face_recognition.face_encodings(image)[0])
+    print(known_encodings)
+    return known_encodings
+
+
 def find_and_store_faces():
     photo_files = pathlib.Path().glob(photos_path + "/IMG_*.*")
     with concurrent.futures.ProcessPoolExecutor() as executor:
@@ -49,10 +58,10 @@ def save_face_image(file):
         face_locations = dict["face_locations"]
         face_landmarks = dict["face_landmarks"]
         face_encodings = dict["face_encodings"]
-        if len(face_landmarks) == 1:
+        if len(face_landmarks) > 0:
             image = face_recognition.load_image_file(str(file))
         else:
-            print("Not 1 face in " + str(file) + " (cached)")
+            print("No faces in " + str(file) + " (cached)")
             return None
     else:
         # load image and find face locations
@@ -71,17 +80,20 @@ def save_face_image(file):
         with open(cache_file_path, 'w') as outfile:
             outfile.write(json_tricks.dumps(data))
 
-        # skip if there isn't one face
-        if len(face_landmarks) != 1:
-            print("Not 1 face in " + str(file))
-            return None
+    if len(face_encodings) == 0:
+        print("No faces found in " + str(file))
+        return None
 
+    face_index = -1
+    for index in range(len(face_encodings)):
+        unknown_face_encoding = face_encodings[index]
+        # Now we can see the two face encodings are of the same person with `compare_faces`!
+        results = face_recognition.compare_faces(known_face_encodings, unknown_face_encoding)
+        if results and results[0] == True:
+            face_index = index
+            break
 
-    # TODO: support multiple faces in the photo
-    unknown_face_encoding = face_encodings[0]
-    # Now we can see the two face encodings are of the same person with `compare_faces`!
-    results = face_recognition.compare_faces(known_face_encodings, unknown_face_encoding)
-    if results[0] == False:
+    if face_index == -1:
         print("No face match in " + str(file))
         return None
 
@@ -89,8 +101,8 @@ def save_face_image(file):
     Let's find the angle of the face. First calculate 
     the center of left and right eye by using eye landmarks.
     '''
-    leftEyePts = face_landmarks[0]['left_eye']
-    rightEyePts = face_landmarks[0]['right_eye']
+    leftEyePts = face_landmarks[face_index]['left_eye']
+    rightEyePts = face_landmarks[face_index]['right_eye']
 
     leftEyeCenter = np.array(leftEyePts).mean(axis=0).astype("int")
     rightEyeCenter = np.array(rightEyePts).mean(axis=0).astype("int")
@@ -185,6 +197,8 @@ cache_path = "cache"
 faces_path = "faces"
 
 delete_old_faces()
+known_face_encodings = get_known_face_encodings(["photos/IMG_4751.jpg"])
+known_face_encodings = []
 find_and_store_faces()
 write_movie()
 
