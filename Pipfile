@@ -12,6 +12,7 @@ opencv-python = "*"
 numpy = "*"
 face_recognition = "*"
 matplotlib = "*"
+json-tricks = "*"
 
 [requires]
 python_version = "3.7"

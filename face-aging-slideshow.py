@@ -5,6 +5,7 @@ import numpy as np
 import pathlib
 import json
 import concurrent.futures
+import json_tricks
 
 
 def convert_heic_photos():
@@ -19,8 +20,8 @@ def delete_old_faces():
 
 
 def find_and_store_faces():
+    photo_files = pathlib.Path().glob(photos_path + "/IMG_*.*")
     with concurrent.futures.ProcessPoolExecutor() as executor:
-        photo_files = pathlib.Path().glob(photos_path + "/IMG_*.*")
         executor.map(save_face_image, photo_files)
     
 
@@ -44,12 +45,14 @@ def save_face_image(file):
     cache_file_path = cache_path + "/" + file.name + ".json"
     if os.path.exists(cache_file_path):
         with open(cache_file_path, 'r') as f:
-            dict = json.load(f)
-            face_locations = dict["face_locations"]
-            face_landmarks = dict["face_landmarks"]
+            dict = json_tricks.loads(f.read())
+        face_locations = dict["face_locations"]
+        face_landmarks = dict["face_landmarks"]
+        face_encodings = dict["face_encodings"]
         if len(face_landmarks) == 1:
             image = face_recognition.load_image_file(str(file))
         else:
+            print("Not 1 face in " + str(file) + " (cached)")
             return None
     else:
         # load image and find face locations
@@ -59,15 +62,28 @@ def save_face_image(file):
         # detect 68-landmarks from image. This includes left eye, right eye, lips, eye brows, nose and chins
         face_landmarks = face_recognition.face_landmarks(image)
 
+        face_encodings = face_recognition.face_encodings(image, face_locations)
+
         data = {}
         data["face_locations"] = face_locations
         data["face_landmarks"] = face_landmarks
+        data["face_encodings"] = face_encodings
         with open(cache_file_path, 'w') as outfile:
-            json.dump(data, outfile)
+            outfile.write(json_tricks.dumps(data))
 
         # skip if there isn't one face
         if len(face_landmarks) != 1:
+            print("Not 1 face in " + str(file))
             return None
+
+
+    # TODO: support multiple faces in the photo
+    unknown_face_encoding = face_encodings[0]
+    # Now we can see the two face encodings are of the same person with `compare_faces`!
+    results = face_recognition.compare_faces(known_face_encodings, unknown_face_encoding)
+    if results[0] == False:
+        print("No face match in " + str(file))
+        return None
 
     '''
     Let's find the angle of the face. First calculate 
@@ -134,12 +150,14 @@ def save_face_image(file):
     output = cv2.warpAffine(image, M, (w, h),
         flags=cv2.INTER_CUBIC)
 
-    # image = cv2.resize(output, size, interpolation = cv2.INTER_CUBIC)
-
     date_taken = get_photo_date_taken(str(file))
     if date_taken:
         face_path = faces_path + "/" + date_taken + " - " + file.stem + ".jpg"
         cv2.imwrite(face_path, cv2.cvtColor(output, cv2.COLOR_RGB2BGR))
+        print("Saved face from " + str(file))
+        return face_path
+    else:
+        print("No date taken for " + str(file))
 
 
 def write_movie():
