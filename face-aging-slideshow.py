@@ -65,7 +65,12 @@ def save_face_image(file):
             return None
     else:
         # load image and find face locations
-        image = face_recognition.load_image_file(str(file))
+        try:
+            image = face_recognition.load_image_file(str(file))
+        except:
+            print("Error opening " + str(file))
+            return None
+
         face_locations = face_recognition.face_locations(image, model="hog")
 
         # detect 68-landmarks from image. This includes left eye, right eye, lips, eye brows, nose and chins
