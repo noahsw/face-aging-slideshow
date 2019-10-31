@@ -164,8 +164,7 @@ def save_face_image(file):
     # this location is in percentage.
     desiredLeftEye = (0.35, 0.5)
     #Set the cropped image(face) size after rotaion.
-    desiredFaceWidth = 256
-    desiredFaceHeight = 456
+    (desiredFaceWidth, desiredFaceHeight) = size
 
     desiredRightEyeX = 1.0 - desiredLeftEye[0]
     
@@ -195,7 +194,6 @@ def save_face_image(file):
 
     # apply the affine transformation
     (w, h) = (desiredFaceWidth, desiredFaceHeight)
-    (y2,x2,y1,x1) = face_locations[0]
 
     output = cv2.warpAffine(image, M, (w, h),
         flags=cv2.INTER_CUBIC)
@@ -252,8 +250,8 @@ def get_frames_per_photo():
 
 
 
-size = (256, 456)
-days_per_min = 365
+size = (256, 356)
+days_per_min = 180
 photos_path = "photos"
 cache_path = "cache"
 faces_path = "faces"
