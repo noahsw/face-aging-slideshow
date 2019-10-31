@@ -37,7 +37,17 @@ def find_and_store_faces():
 def get_photo_date_taken(path):
     json_path = path + ".json"
     if os.path.exists(json_path) == False:
-        return None
+        # Google does some funky numbering when there are dupes
+        # original: IMG_0906(1).JPG
+        # expected: IMG_0906(1).JPG.json
+        # actual: IMG_0906.JPG(1).json
+        i = 1
+        for i in range(1, 10):
+            if json_path.find("(" + str(i) + ")"):
+                json_path = json_path.replace("(" + str(i) + ")", "").replace(".json", "(" + str(i) + ").json")
+                break
+        if os.path.exists(json_path) == False:
+            return None
 
     with open(json_path, 'r') as f:
         dict = json.load(f)
