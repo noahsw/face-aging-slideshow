@@ -93,9 +93,13 @@ def save_face_image(file):
     for index in range(len(face_encodings)):
         unknown_face_encoding = face_encodings[index]
         # Now we can see the two face encodings are of the same person with `compare_faces`!
-        results = face_recognition.compare_faces(known_face_encodings, unknown_face_encoding)
-        if results and results[0] == True:
-            face_index = index
+        results = face_recognition.compare_faces(known_face_encodings, unknown_face_encoding, tolerance=0.3)
+        # if an unknown face matches against any known face, return that unknown face
+        for result_index in range(len(results)):
+            if results[result_index] == True:
+                face_index = index
+                break
+        if face_index > -1:
             break
 
     if face_index == -1:
