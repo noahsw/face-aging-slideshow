@@ -177,6 +177,10 @@ def save_face_image(file):
     desiredDist *= desiredFaceWidth
     scale = desiredDist / dist
 
+    if scale > 1:
+        print("Face is too small")
+        return None
+
     # compute center (x, y)-coordinates (i.e., the median point)
     # between the two eyes in the input image
     eyesCenter = ((leftEyeCenter[0] + rightEyeCenter[0]) // 2,
