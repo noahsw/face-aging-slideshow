@@ -189,7 +189,7 @@ def write_movie():
     vvw = cv2.VideoWriter(movie_path, cv2.VideoWriter_fourcc(*'avc1'), 30, size)
 
     py = pathlib.Path().glob(faces_path + "/*.jpg")
-    for file in py:
+    for file in sorted(py):
         frame = cv2.imread("./" + str(file))
 
         for x in range(1, 15):
