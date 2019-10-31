@@ -227,6 +227,22 @@ def write_movie():
     vvw.release()
 
 
+def remove_photo_clusters():
+    previous_timestamp = 0
+    remove_count = 0
+
+    py = pathlib.Path().glob(faces_path + "/*.jpg")
+    for file in sorted(py):
+        timestamp = int(file.name.split(" - ")[0])
+        # delete if previous one was taken within a minute of this one
+        if timestamp - previous_timestamp < 60:
+            file.unlink()
+            remove_count += 1
+        previous_timestamp = timestamp
+
+    print("Photo clusters removed: " + str(remove_count))
+
+
 def get_frames_per_photo():
     earliest_timestamp = sys.maxsize
     latest_timestamp = 0
