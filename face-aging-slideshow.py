@@ -6,6 +6,7 @@ import pathlib
 import json
 import concurrent.futures
 import json_tricks
+import sys
 
 
 def convert_heic_photos():
@@ -198,14 +199,38 @@ def write_movie():
 
     vvw = cv2.VideoWriter(movie_path, cv2.VideoWriter_fourcc(*'avc1'), 30, size)
 
+    frames_per_photo = get_frames_per_photo()
+
     py = pathlib.Path().glob(faces_path + "/*.jpg")
     for file in sorted(py):
         frame = cv2.imread("./" + str(file))
 
-        for x in range(1, 15):
+        for x in range(1, frames_per_photo):
             vvw.write(frame)
 
     vvw.release()
+
+
+def get_frames_per_photo():
+    earliest_timestamp = sys.maxsize
+    latest_timestamp = 0
+    photo_count = 0
+
+    py = pathlib.Path().glob(faces_path + "/*.jpg")
+    for file in py:
+        photo_count += 1
+        timestamp = int(file.name.split(" - ")[0])
+        if timestamp < earliest_timestamp:
+            earliest_timestamp = timestamp
+        if timestamp > latest_timestamp:
+            latest_timestamp = timestamp
+
+    timestamp_diff_in_days = 1.0 * (latest_timestamp - earliest_timestamp) / 60 / 60 / 24
+    movie_frames_per_second = 30
+    days_per_photo = timestamp_diff_in_days / photo_count
+    photos_per_sec = days_per_min / days_per_photo / 60
+
+    return int(movie_frames_per_second / photos_per_sec)
 
 
 
