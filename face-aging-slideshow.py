@@ -123,9 +123,27 @@ def save_face_image(file):
     '''
     leftEyePts = face_landmarks[face_index]['left_eye']
     rightEyePts = face_landmarks[face_index]['right_eye']
+    nosePts = face_landmarks[face_index]['nose_tip']
+    topLipPts = face_landmarks[face_index]['top_lip']
+    bottomLipPts = face_landmarks[face_index]['bottom_lip']
 
     leftEyeCenter = np.array(leftEyePts).mean(axis=0).astype("int")
     rightEyeCenter = np.array(rightEyePts).mean(axis=0).astype("int")
+    noseCenter = np.array(nosePts).mean(axis=0).astype("int")
+    topLipCenter = np.array(topLipPts).mean(axis=0).astype("int")
+    bottomLipCenter = np.array(bottomLipPts).mean(axis=0).astype("int")
+
+    # calculate where nose is relative to each eye. if centered, face is looking forward
+    pose = (rightEyeCenter[0] - noseCenter[0]) / (rightEyeCenter[0] - leftEyeCenter[0])
+    if (pose < 0.4 or pose > 0.6):
+        print("Face not looking forward")
+        return None
+
+    # calculate lip separation as a ratio of distance between lip to nose
+    smile = (bottomLipCenter[1] - topLipCenter[1]) / (bottomLipCenter[1] - noseCenter[1])
+    if (smile < 0.2):
+        print("Face not smiling")
+        return None
 
     leftEyeCenter = (leftEyeCenter[0],leftEyeCenter[1])
     rightEyeCenter = (rightEyeCenter[0],rightEyeCenter[1])
