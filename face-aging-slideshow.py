@@ -334,5 +334,6 @@ delete_old_faces()
 known_face_encodings = get_known_face_encodings(["photos/IMG_4751.jpg"])
 known_face_encodings = []
 find_and_store_faces()
+remove_photo_clusters()
 write_movie()
 
