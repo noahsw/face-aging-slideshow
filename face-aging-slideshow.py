@@ -59,11 +59,11 @@ def delete_old_faces():
 
 
 def get_known_face_encodings(known_face_paths):
+    print("Calculating face encodings...")
     known_encodings = []
     for known_face_path in known_face_paths:
         image = face_recognition.load_image_file(known_face_path)
         known_encodings.append(face_recognition.face_encodings(image)[0])
-    print(known_encodings)
     return known_encodings
 
 
