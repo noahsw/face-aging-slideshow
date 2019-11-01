@@ -7,10 +7,48 @@ import json
 import concurrent.futures
 import json_tricks
 import sys
+import subprocess
+
 
 
 def convert_heic_photos():
-    files = pathlib.Path().glob(photos_path + "/*.heic")
+    print("Converting HEIC photos...")
+
+    heic_files = sorted(pathlib.Path().glob(photos_path + "/*.*"))
+
+    #for file in heic_files:
+    #    convert_heic_to_jpeg(file)
+
+    with concurrent.futures.ProcessPoolExecutor() as executor:
+        executor.map(convert_heic_to_jpeg, heic_files)
+    
+
+def convert_heic_to_jpeg(file):
+    if file.suffix.lower() != ".heic":
+        return None
+
+    # we have to do some renaming shenanigans 
+    # because there might already be a jpg with the same name
+
+    # IMG_0103.HEIC --> IMG_0103.converted.jpg
+    # IMG_0103.HEIC.json --> IMG_0103.converted.jpg.json
+
+    # IMG_0103(1).HEIC --> IMG_0103(1).converted.jpg
+    # IMG_0103.HEIC(1).json --> IMG_0103.HEIC(1).converted.jpg.json
+
+    heic_path = photos_path + "/" + file.name
+    jpeg_path = photos_path + "/" + file.stem + ".converted.jpg"
+    if os.path.exists(jpeg_path) == False:
+        cmd = ['magick', 'convert', heic_path, jpeg_path]
+        subprocess.call(cmd, shell=False)
+        print("Converted " + heic_path + " to " + jpeg_path)
+
+        json_path = get_json_path(heic_path)
+        if json_path:
+            new_json_path = json_path.replace(".json", ".converted.jpg.json")
+            new_json_path = new_json_path.replace(".HEIC", "", 1)
+            os.rename(json_path, new_json_path)
+            print("Renamed " + json_path + " to " + new_json_path)
 
 
 
@@ -35,20 +73,35 @@ def find_and_store_faces():
         executor.map(save_face_image, photo_files)
     
 
-def get_photo_date_taken(path):
-    json_path = path + ".json"
+    for file in photo_files:
+        save_face_image(file)
+
+    # for some reason this quits early when i also run encodings beforehand :shrug:
+    #with concurrent.futures.ProcessPoolExecutor() as executor:
+    #    executor.map(save_face_image, photo_files)
+
+
+def get_json_path(photo_path):
+    json_path = photo_path + ".json"
     if os.path.exists(json_path) == False:
         # Google does some funky numbering when there are dupes
         # original: IMG_0906(1).JPG
         # expected: IMG_0906(1).JPG.json
         # actual: IMG_0906.JPG(1).json
         i = 1
-        for i in range(1, 10):
+        for i in range(1, 50):
             if json_path.find("(" + str(i) + ")"):
                 json_path = json_path.replace("(" + str(i) + ")", "").replace(".json", "(" + str(i) + ").json")
                 break
         if os.path.exists(json_path) == False:
             return None
+    return json_path
+    
+
+def get_photo_date_taken(path):
+    json_path = get_json_path(path)
+    if json_path == False:
+        return None
 
     with open(json_path, 'r') as f:
         dict = json.load(f)
@@ -276,6 +329,7 @@ photos_path = "photos"
 cache_path = "cache"
 faces_path = "faces"
 
+convert_heic_photos()
 delete_old_faces()
 known_face_encodings = get_known_face_encodings(["photos/IMG_4751.jpg"])
 known_face_encodings = []
