@@ -58,12 +58,23 @@ def delete_old_faces():
         os.remove(f)
 
 
+def calculate_face_encoding(face_path):
+    image = face_recognition.load_image_file(face_path)
+    encodings = face_recognition.face_encodings(image)
+    if len(encodings):
+        return encodings[0]
+    else:
+        return None
+
+
 def get_known_face_encodings(known_face_paths):
-    print("Calculating face encodings...")
+    print("Calculating face encodings for primary face...")
+
     known_encodings = []
-    for known_face_path in known_face_paths:
-        image = face_recognition.load_image_file(known_face_path)
-        known_encodings.append(face_recognition.face_encodings(image)[0])
+    with concurrent.futures.ProcessPoolExecutor() as executor:
+        for face_encoding in executor.map(calculate_face_encoding, known_face_paths):
+            known_encodings.append(face_encoding)
+
     return known_encodings
 
 
