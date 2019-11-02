@@ -318,6 +318,9 @@ def get_frames_per_photo():
         if timestamp > latest_timestamp:
             latest_timestamp = timestamp
 
+    if photo_count == 0:
+        return 0
+
     timestamp_diff_in_days = 1.0 * (latest_timestamp - earliest_timestamp) / 60 / 60 / 24
     movie_frames_per_second = 30
     days_per_photo = timestamp_diff_in_days / photo_count
