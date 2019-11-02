@@ -194,30 +194,12 @@ def save_face_image(file):
     '''
     leftEyePts = face_landmarks[face_index]['left_eye']
     rightEyePts = face_landmarks[face_index]['right_eye']
-    nosePts = face_landmarks[face_index]['nose_tip']
-    topLipPts = face_landmarks[face_index]['top_lip']
-    bottomLipPts = face_landmarks[face_index]['bottom_lip']
 
     leftEyeCenter = np.array(leftEyePts).mean(axis=0).astype("int")
     rightEyeCenter = np.array(rightEyePts).mean(axis=0).astype("int")
-    noseCenter = np.array(nosePts).mean(axis=0).astype("int")
-    topLipCenter = np.array(topLipPts).mean(axis=0).astype("int")
-    bottomLipCenter = np.array(bottomLipPts).mean(axis=0).astype("int")
 
-    # calculate where nose is relative to each eye. if centered, face is looking forward
-    pose = (rightEyeCenter[0] - noseCenter[0]) / (rightEyeCenter[0] - leftEyeCenter[0])
-    if (pose < 0.4 or pose > 0.6):
-        print("Face not looking forward")
-        return None
-
-    # calculate lip separation as a ratio of distance between lip to nose
-    smile = (bottomLipCenter[1] - topLipCenter[1]) / (bottomLipCenter[1] - noseCenter[1])
-    if (smile < 0.2):
-        print("Face not smiling")
-        return None
-
-    leftEyeCenter = (leftEyeCenter[0],leftEyeCenter[1])
-    rightEyeCenter = (rightEyeCenter[0],rightEyeCenter[1])
+    leftEyeCenter = (leftEyeCenter[0], leftEyeCenter[1])
+    rightEyeCenter = (rightEyeCenter[0], rightEyeCenter[1])
 
     # draw the circle at centers and line connecting to them
     # cv2.circle(image, leftEyeCenter, 2, (255, 0, 0), 10)
@@ -270,13 +252,51 @@ def save_face_image(file):
     # apply the affine transformation
     (w, h) = (desiredFaceWidth, desiredFaceHeight)
 
-    output = cv2.warpAffine(image, M, (w, h),
+    transformed_image = cv2.warpAffine(image, M, (w, h),
         flags=cv2.INTER_CUBIC)
+
+    # recalculate landmarks on transformed image
+    face_landmarks = face_recognition.face_landmarks(transformed_image)
+    if len(face_landmarks) == 0:
+        print("No faces found after transformation in " + str(file))
+        return None
+
+    leftEyePts = face_landmarks[0]['left_eye']
+    rightEyePts = face_landmarks[0]['right_eye']
+    nosePts = face_landmarks[0]['nose_tip']
+    topLipPts = face_landmarks[0]['top_lip']
+    bottomLipPts = face_landmarks[0]['bottom_lip']
+
+    leftEyeCenter = np.array(leftEyePts).mean(axis=0).astype("int")
+    rightEyeCenter = np.array(rightEyePts).mean(axis=0).astype("int")
+    noseCenter = np.array(nosePts).mean(axis=0).astype("int")
+    topLipCenter = np.array(topLipPts).mean(axis=0).astype("int")
+    bottomLipCenter = np.array(bottomLipPts).mean(axis=0).astype("int")
+
+    leftEyeCenter = (leftEyeCenter[0], leftEyeCenter[1])
+    rightEyeCenter = (rightEyeCenter[0], rightEyeCenter[1])
+    noseCenter = (noseCenter[0], noseCenter[1])
+    topLipCenter = (topLipCenter[0], topLipCenter[1])
+    bottomLipCenter = (bottomLipCenter[0], bottomLipCenter[1])
+
+    # calculate where mouth is relative to each eye. if centered, face is looking forward
+    pose = (rightEyeCenter[0] - bottomLipCenter[0]) / (rightEyeCenter[0] - leftEyeCenter[0])
+    if (pose < 0.45 or pose > 0.55):
+        print("Face not looking forward in " + str(file))
+        return None
+
+    # calculate lip separation as a ratio of distance between lip to nose
+    smile = (bottomLipCenter[1] - topLipCenter[1]) / (bottomLipCenter[1] - noseCenter[1])
+    if (smile < 0.27):
+        print("Face not smiling in " + str(file))
+        return None
+
+
 
     date_taken = get_photo_date_taken(str(file))
     if date_taken:
         face_path = faces_path + "/" + date_taken + " - " + file.stem + ".jpg"
-        cv2.imwrite(face_path, cv2.cvtColor(output, cv2.COLOR_RGB2BGR))
+        cv2.imwrite(face_path, cv2.cvtColor(transformed_image, cv2.COLOR_RGB2BGR))
         print("Saved face from " + str(file))
         return face_path
     else:
