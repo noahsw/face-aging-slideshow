@@ -295,8 +295,8 @@ def remove_photo_clusters():
     py = pathlib.Path().glob(faces_path + "/*.jpg")
     for file in sorted(py):
         timestamp = int(file.name.split(" - ")[0])
-        # delete if previous one was taken within a minute of this one
-        if timestamp - previous_timestamp < 60:
+        # delete if previous one was taken within 12 hours of this one
+        if timestamp - previous_timestamp < 60 * 60 * 12:
             file.unlink()
             remove_count += 1
         previous_timestamp = timestamp
