@@ -99,7 +99,7 @@ def get_json_path(photo_path):
         # actual: IMG_0906.JPG(1).json
         i = 1
         for i in range(1, 50):
-            if json_path.find("(" + str(i) + ")"):
+            if "(" + str(i) + ")" in json_path:
                 json_path = json_path.replace("(" + str(i) + ")", "").replace(".json", "(" + str(i) + ").json")
                 break
         if os.path.exists(json_path) == False:
