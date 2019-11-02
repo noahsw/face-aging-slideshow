@@ -128,6 +128,11 @@ def save_face_image(file):
 
     print("Scanning " + str(file))
 
+    # Ignore Google Photos collages so we don't get duplicates
+    if "-COLLAGE" in file.name:
+        print("Ignoring collage in " + str(file))
+        return None
+
     cache_file_path = cache_path + "/" + file.name + ".json"
     if os.path.exists(cache_file_path):
         with open(cache_file_path, 'r') as f:
