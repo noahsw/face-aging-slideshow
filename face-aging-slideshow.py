@@ -68,15 +68,13 @@ def get_known_face_encodings(known_face_paths):
 
 
 def find_and_store_faces():
-    photo_files = pathlib.Path().glob(photos_path + "/IMG_*.*")
-    with concurrent.futures.ProcessPoolExecutor() as executor:
-        executor.map(save_face_image, photo_files)
-    
+    photo_files = sorted(list(pathlib.Path().glob(photos_path + "/*.*")))
 
+    print("Count of photos to scan: " + str(len(photo_files)))
+    
     for file in photo_files:
         save_face_image(file)
 
-    # for some reason this quits early when i also run encodings beforehand :shrug:
     #with concurrent.futures.ProcessPoolExecutor() as executor:
     #    executor.map(save_face_image, photo_files)
 
