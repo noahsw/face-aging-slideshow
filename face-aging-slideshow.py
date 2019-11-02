@@ -103,10 +103,14 @@ def get_photo_date_taken(path):
     if json_path == False:
         return None
 
-    with open(json_path, 'r') as f:
-        dict = json.load(f)
-        date_taken = dict["photoTakenTime"]["timestamp"]
-    return date_taken
+    try:
+        with open(json_path, 'r') as f:
+            dict = json.load(f)
+            date_taken = dict["photoTakenTime"]["timestamp"]
+        return date_taken
+    except:
+        print("Could not determine date taken for " + path)
+        return None
 
 
 def save_face_image(file):
