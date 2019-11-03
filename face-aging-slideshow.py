@@ -287,7 +287,7 @@ def save_face_image(file):
 
     # calculate lip separation as a ratio of distance between lip to nose
     smile = (bottomLipCenter[1] - topLipCenter[1]) / (bottomLipCenter[1] - noseCenter[1])
-    if (smile < 0.27):
+    if (smile < 0.2):
         print("Face not smiling in " + str(file))
         return None
 
