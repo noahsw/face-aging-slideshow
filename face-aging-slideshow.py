@@ -296,7 +296,7 @@ def save_face_image(file):
     date_taken = get_photo_date_taken(str(file))
     if date_taken:
         face_path = faces_path + "/" + date_taken + " - " + file.stem + ".jpg"
-        cv2.imwrite(face_path, cv2.cvtColor(transformed_image, cv2.COLOR_RGB2BGR))
+        cv2.imwrite(face_path, cv2.cvtColor(transformed_image, cv2.COLOR_RGB2BGR), [int(cv2.IMWRITE_JPEG_QUALITY), 100])
         print("Saved face from " + str(file))
         return face_path
     else:
