@@ -334,6 +334,7 @@ def write_movie():
     vvw = cv2.VideoWriter(movie_path, cv2.VideoWriter_fourcc(*'avc1'), 30, size)
 
     frames_per_photo = get_frames_per_photo()
+    print("Frames per photo: " + str(frames_per_photo))
 
     py = pathlib.Path().glob(faces_path + "/*.jpg")
     for file in sorted(py):
