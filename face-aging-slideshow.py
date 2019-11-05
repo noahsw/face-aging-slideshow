@@ -388,8 +388,8 @@ def get_frames_per_photo():
 
 
 
-size = (256, 341)
-days_per_min = 700
+size = (384, 512)
+days_per_min = 800
 photos_path = "photos"
 cache_path = "cache"
 faces_path = "faces"
