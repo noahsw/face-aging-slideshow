@@ -267,7 +267,7 @@ def save_face_image(file):
 
     # update the translation component of the matrix
     tX = desiredFaceWidth * 0.5
-    tY = desiredFaceHeight * desiredLeftEye[1] # + 40
+    tY = desiredFaceHeight * desiredLeftEye[1]
 
     M[0, 2] += (tX - eyesCenter[0])
     M[1, 2] += (tY - eyesCenter[1])
