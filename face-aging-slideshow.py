@@ -64,16 +64,31 @@ def calculate_face_encoding(face_path):
     if len(encodings):
         return encodings[0]
     else:
-        return None
+        return np.array([])
 
 
 def get_known_face_encodings(known_face_paths):
     print("Calculating face encodings for primary face...")
 
     known_encodings = []
+
+    '''
+    for face_path in known_face_paths:
+        encoding = calculate_face_encoding(face_path)
+        if encoding.size == 0:
+            print("No encodings found in " + face_path)
+        else:
+            known_encodings.append(encoding)
+    '''
+
     with concurrent.futures.ProcessPoolExecutor() as executor:
-        for face_encoding in executor.map(calculate_face_encoding, known_face_paths):
-            known_encodings.append(face_encoding)
+        for known_face_path, face_encoding in zip(known_face_paths, executor.map(calculate_face_encoding, known_face_paths)):
+            if face_encoding.size == 0:
+                print("No encodings found in " + known_face_path)
+            else:
+                known_encodings.append(face_encoding)
+
+    print("Known encodings: " + str(len(known_encodings)))
 
     return known_encodings
 
@@ -82,12 +97,20 @@ def find_and_store_faces():
     photo_files = sorted(list(pathlib.Path().glob(photos_path + "/*.*")))
 
     print("Count of photos to scan: " + str(len(photo_files)))
-    
-    for file in photo_files:
-        save_face_image(file)
 
-    #with concurrent.futures.ProcessPoolExecutor() as executor:
-    #    executor.map(save_face_image, photo_files)
+    results = []
+    
+    '''
+    for file in photo_files:
+        result = save_face_image(file)
+        results.append(result)
+    '''
+
+    with concurrent.futures.ProcessPoolExecutor() as executor:
+        for result in executor.map(save_face_image, photo_files):
+            results.append(result)
+
+
 
 
 def get_json_path(photo_path):
