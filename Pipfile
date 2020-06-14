@@ -13,6 +13,7 @@ numpy = "*"
 face_recognition = "*"
 matplotlib = "*"
 json-tricks = "*"
+pybrisque = "*"
 
 [requires]
 python_version = "3.7"

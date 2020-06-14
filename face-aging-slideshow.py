@@ -8,7 +8,9 @@ import concurrent.futures
 import json_tricks
 import sys
 import subprocess
+from brisque import BRISQUE
 
+brisq = BRISQUE()
 
 
 def convert_heic_photos():
@@ -253,7 +255,7 @@ def save_face_image(file):
     desiredDist *= desiredFaceWidth
     scale = desiredDist / dist
 
-    if scale > 1:
+    if scale > 0.7:
         print("Face is too small")
         return None
 
@@ -277,6 +279,22 @@ def save_face_image(file):
 
     transformed_image = cv2.warpAffine(image, M, (w, h),
         flags=cv2.INTER_CUBIC)
+
+    # check image quality
+    '''
+    brisq_score = brisq.get_score(transformed_image)
+    if brisq_score > 40: # lower is better
+        print("Image quality too low (" + str(brisq_score) + ") in " + str(file))
+        return None
+    '''
+
+    # check blur factor
+    '''
+    laplacian_var = cv2.Laplacian(transformed_image, cv2.CV_64F).var()
+    if laplacian_var < 450:
+        print("Too much blur (" + str(laplacian_var) + ") in " + str(file))
+        return None
+    '''
 
     # recalculate landmarks on transformed image
     face_landmarks = face_recognition.face_landmarks(transformed_image)
@@ -384,6 +402,8 @@ def get_frames_per_photo():
     days_per_photo = timestamp_diff_in_days / photo_count
     photos_per_sec = days_per_min / days_per_photo / 60
 
+    return 10
+
     return int(movie_frames_per_second / photos_per_sec)
 
 
@@ -394,11 +414,19 @@ photos_path = "photos"
 cache_path = "cache"
 faces_path = "faces"
 
+'''
 convert_heic_photos()
+'''
 delete_old_faces()
-known_face_encodings = get_known_face_encodings(["photos/IMG_4751.jpg"])
-known_face_encodings = []
+known_face_encodings = get_known_face_encodings([
+    "photos/img-105(1).jpg", # 4 month
+    "photos/DSC_8323.jpg", # 9 month
+    "photos/DSC_8001.jpg", # 9 month
+    "photos/img-102.jpg", # 1 year
+    "photos/img-110.jpg", # 1 year
+    "photos/IMG_9419.JPG",
+    "photos/IMG_4751.jpg" # 2 years
+    ])
 find_and_store_faces()
 remove_photo_clusters()
 write_movie()
-
