@@ -138,7 +138,7 @@ def get_photo_date_taken(path):
     try:
         with open(json_path, 'r') as f:
             dict = json.load(f)
-            date_taken = dict["photoTakenTime"]["timestamp"]
+            date_taken = dict["timestamp"]
         return date_taken
     except:
         print("Could not determine date taken for " + path)
@@ -156,7 +156,7 @@ def save_face_image(file):
         print("Ignoring collage in " + str(file))
         return None
 
-    cache_file_path = cache_path + "/" + file.name + ".json"
+    cache_file_path = file.parent + "/" + file.name + ".json"
     if os.path.exists(cache_file_path):
         with open(cache_file_path, 'r') as f:
             dict = json_tricks.loads(f.read())
@@ -390,14 +390,23 @@ def get_frames_per_photo():
 
 size = (384, 512)
 days_per_min = 800
-photos_path = "photos"
-cache_path = "cache"
-faces_path = "faces"
+
+album_path = "Leo - ABNe77DQpmdI6ed16wtM004qX3oYZNHmI4EWXua2UWMeUeUtBQauaV3NEGiOqQy5ZSIo5dlRL1Rd"
+photos_path = "photos/" + album_path
+faces_path = "faces/" + album_path
+
 
 convert_heic_photos()
 delete_old_faces()
-known_face_encodings = get_known_face_encodings(["photos/IMG_4751.jpg"])
-known_face_encodings = []
+known_face_encodings = get_known_face_encodings([
+    "photos/img-105(1).jpg", # 4 month
+    "photos/Leo - ABNe77DQpmdI6ed16wtM004qX3oYZNHmI4EWXua2UWMeUeUtBQauaV3NEGiOqQy5ZSIo5dlRL1Rd/ABNe77Bv6bdthudnb76bCeVZCKuTZOgnzvpVWqiZhnXSewWh56h5PZOBlbHQg10KbdTNnSJ2HiqkU04jl-Rtk5vGgC8ujLMIAA-DSC_8323.jpg", # 9 month
+    "photos/DSC_8001.jpg", # 9 month
+    "photos/img-102.jpg", # 1 year
+    "photos/Leo - ABNe77DQpmdI6ed16wtM004qX3oYZNHmI4EWXua2UWMeUeUtBQauaV3NEGiOqQy5ZSIo5dlRL1Rd/ABNe77Bb7E6g2klyY4h9D2jpjid7pT31NaMiPLw6gQczoHRHxpZLESvtUCOvSoQFrDRgTcad3JQAPVgk8w0Rb9YzOb_znZMV_g-img-110.jpg", # 1 year
+    "photos/Leo - ABNe77DQpmdI6ed16wtM004qX3oYZNHmI4EWXua2UWMeUeUtBQauaV3NEGiOqQy5ZSIo5dlRL1Rd/ABNe77Cq3YsFP5oVHJCooVXKCKcVkRBTCVlpDI43c4angZUMJ9YAe3VuCinlJZZJMvhpINd4JsE3jTcF-IOX1k_UlDTYdBgwtQ-IMG_9419.jpg",
+    "photos/IMG_4751.jpg" # 2 years
+    ])
 find_and_store_faces()
 remove_photo_clusters()
 write_movie()
