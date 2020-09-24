@@ -13,6 +13,7 @@ numpy = "*"
 face_recognition = "*"
 matplotlib = "*"
 json-tricks = "*"
+azure-cognitiveservices-vision-face = "*"
 
 [requires]
 python_version = "3.7"
