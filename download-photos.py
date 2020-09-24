@@ -6,7 +6,9 @@ def download_media_item(media_item, photos_path):
 
     baseUrl = media_item['baseUrl'] + "=w" + width + "-h" + height
 
-    path = photos_path + "/" + media_item['id'] + "-" + media_item['filename']
+    timestamp = media_item['mediaMetadata']['creationTime']
+
+    path = photos_path + "/" + timestamp + "-" + media_item['id'] + "-" + media_item['filename']
 
     if os.path.isfile(path):
         return
@@ -20,7 +22,8 @@ def download_media_item(media_item, photos_path):
             f.write(chunk)
 
     data = {}
-    data['timestamp'] = media_item['mediaMetadata']['creationTime']
+    data['googleMetadata'] = media_item
+    data['timestamp'] = timestamp
     json_path = path + ".json"
     with open(json_path, 'w') as outfile:
         outfile.write(json_tricks.dumps(data))

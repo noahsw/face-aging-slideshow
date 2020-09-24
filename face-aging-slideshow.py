@@ -8,6 +8,7 @@ import concurrent.futures
 import json_tricks
 import sys
 import subprocess
+import datetime
 
 
 
@@ -59,6 +60,7 @@ def delete_old_faces():
 
 
 def calculate_face_encoding(face_path):
+    print("Calculating face encoding for " + face_path)
     image = face_recognition.load_image_file(face_path)
     encodings = face_recognition.face_encodings(image)
     if len(encodings):
@@ -72,7 +74,6 @@ def get_known_face_encodings(known_face_paths):
 
     known_encodings = []
 
-    '''
     for face_path in known_face_paths:
         encoding = calculate_face_encoding(face_path)
         if encoding.size == 0:
@@ -87,7 +88,8 @@ def get_known_face_encodings(known_face_paths):
                 print("No encodings found in " + known_face_path)
             else:
                 known_encodings.append(face_encoding)
-
+    '''
+    
     print("Known encodings: " + str(len(known_encodings)))
 
     return known_encodings
@@ -100,7 +102,6 @@ def find_and_store_faces():
 
     results = []
     
-    '''
     for file in photo_files:
         result = save_face_image(file)
         results.append(result)
@@ -109,24 +110,13 @@ def find_and_store_faces():
     with concurrent.futures.ProcessPoolExecutor() as executor:
         for result in executor.map(save_face_image, photo_files):
             results.append(result)
-
+    '''
+    
 
 
 
 def get_json_path(photo_path):
     json_path = photo_path + ".json"
-    if os.path.exists(json_path) == False:
-        # Google does some funky numbering when there are dupes
-        # original: IMG_0906(1).JPG
-        # expected: IMG_0906(1).JPG.json
-        # actual: IMG_0906.JPG(1).json
-        i = 1
-        for i in range(1, 50):
-            if "(" + str(i) + ")" in json_path:
-                json_path = json_path.replace("(" + str(i) + ")", "").replace(".json", "(" + str(i) + ").json")
-                break
-        if os.path.exists(json_path) == False:
-            return None
     return json_path
     
 
@@ -156,10 +146,15 @@ def save_face_image(file):
         print("Ignoring collage in " + str(file))
         return None
 
-    cache_file_path = file.parent + "/" + file.name + ".json"
-    if os.path.exists(cache_file_path):
-        with open(cache_file_path, 'r') as f:
-            dict = json_tricks.loads(f.read())
+    cache_file_path = photos_path + "/" + file.name + ".json"
+    if os.path.exists(movie_path) == False:
+        print("Cache file doesn't exist at " + cache_file_path)
+        return None
+
+    dict = {}
+    with open(cache_file_path, 'r') as f:
+        dict = json_tricks.loads(f.read())
+    if "face_locations" in dict:
         face_locations = dict["face_locations"]
         face_landmarks = dict["face_landmarks"]
         face_encodings = dict["face_encodings"]
@@ -183,12 +178,11 @@ def save_face_image(file):
 
         face_encodings = face_recognition.face_encodings(image, face_locations)
 
-        data = {}
-        data["face_locations"] = face_locations
-        data["face_landmarks"] = face_landmarks
-        data["face_encodings"] = face_encodings
+        dict['face_locations'] = face_locations
+        dict['face_landmarks'] = face_landmarks
+        dict['face_encodings'] = face_encodings
         with open(cache_file_path, 'w') as outfile:
-            outfile.write(json_tricks.dumps(data))
+            outfile.write(json_tricks.dumps(dict))
 
     if len(face_encodings) == 0:
         print("No faces found in " + str(file))
@@ -320,6 +314,7 @@ def save_face_image(file):
     if date_taken:
         face_path = faces_path + "/" + date_taken + " - " + file.stem + ".jpg"
         cv2.imwrite(face_path, cv2.cvtColor(transformed_image, cv2.COLOR_RGB2BGR), [int(cv2.IMWRITE_JPEG_QUALITY), 100])
+
         print("Saved face from " + str(file))
         return face_path
     else:
@@ -345,14 +340,16 @@ def write_movie():
 
     vvw.release()
 
-
 def remove_photo_clusters():
     previous_timestamp = 0
     remove_count = 0
 
     py = pathlib.Path().glob(faces_path + "/*.jpg")
     for file in sorted(py):
-        timestamp = int(file.name.split(" - ")[0])
+        date_time_str = file.name.split(" - ")[0]
+        date_time_obj = datetime.datetime.strptime(date_time_str, '%Y-%m-%dT%H:%M:%SZ')
+        timestamp = int(date_time_obj.strftime("%s"))
+
         # delete if previous one was taken within 12 hours of this one
         if timestamp - previous_timestamp < 60 * 60 * 12:
             file.unlink()
@@ -370,7 +367,10 @@ def get_frames_per_photo():
     py = pathlib.Path().glob(faces_path + "/*.jpg")
     for file in py:
         photo_count += 1
-        timestamp = int(file.name.split(" - ")[0])
+
+        date_time_str = file.name.split(" - ")[0]
+        date_time_obj = datetime.datetime.strptime(date_time_str, '%Y-%m-%dT%H:%M:%SZ')
+        timestamp = int(date_time_obj.strftime("%s"))
         if timestamp < earliest_timestamp:
             earliest_timestamp = timestamp
         if timestamp > latest_timestamp:
@@ -395,19 +395,24 @@ album_path = "Leo - ABNe77DQpmdI6ed16wtM004qX3oYZNHmI4EWXua2UWMeUeUtBQauaV3NEGiO
 photos_path = "photos/" + album_path
 faces_path = "faces/" + album_path
 
+if not os.path.exists(faces_path):
+    os.makedirs(faces_path)
+        
 
+'''
 convert_heic_photos()
 delete_old_faces()
 known_face_encodings = get_known_face_encodings([
-    "photos/img-105(1).jpg", # 4 month
-    "photos/Leo - ABNe77DQpmdI6ed16wtM004qX3oYZNHmI4EWXua2UWMeUeUtBQauaV3NEGiOqQy5ZSIo5dlRL1Rd/ABNe77Bv6bdthudnb76bCeVZCKuTZOgnzvpVWqiZhnXSewWh56h5PZOBlbHQg10KbdTNnSJ2HiqkU04jl-Rtk5vGgC8ujLMIAA-DSC_8323.jpg", # 9 month
-    "photos/DSC_8001.jpg", # 9 month
-    "photos/img-102.jpg", # 1 year
-    "photos/Leo - ABNe77DQpmdI6ed16wtM004qX3oYZNHmI4EWXua2UWMeUeUtBQauaV3NEGiOqQy5ZSIo5dlRL1Rd/ABNe77Bb7E6g2klyY4h9D2jpjid7pT31NaMiPLw6gQczoHRHxpZLESvtUCOvSoQFrDRgTcad3JQAPVgk8w0Rb9YzOb_znZMV_g-img-110.jpg", # 1 year
-    "photos/Leo - ABNe77DQpmdI6ed16wtM004qX3oYZNHmI4EWXua2UWMeUeUtBQauaV3NEGiOqQy5ZSIo5dlRL1Rd/ABNe77Cq3YsFP5oVHJCooVXKCKcVkRBTCVlpDI43c4angZUMJ9YAe3VuCinlJZZJMvhpINd4JsE3jTcF-IOX1k_UlDTYdBgwtQ-IMG_9419.jpg",
-    "photos/IMG_4751.jpg" # 2 years
+    # photos_path + "/ABNe77CP-kRcC8sNt_94OLA4OfVKLEH6A6ZyXR4nRq7VlDo6kFBqGZ3gYievZZ0hN_RAOYG-pDc-danwY9Ccgg-IxocaHx0_5w-img-106bw.jpg",
+    photos_path + "/ABNe77Bv6bdthudnb76bCeVZCKuTZOgnzvpVWqiZhnXSewWh56h5PZOBlbHQg10KbdTNnSJ2HiqkU04jl-Rtk5vGgC8ujLMIAA-DSC_8323.jpg", # 9 month
+    photos_path + "/ABNe77DJKqiHHDzl7h2uXKOobTDbC1nE4vA77DKVbjKvAhyQv0M9RoIkg-nrV9jaDv3AfuN-i7Nb7JiQ-0tLDQxwz_EjyqCSZQ-img-135.jpg",
+    photos_path + "/ABNe77Bb7E6g2klyY4h9D2jpjid7pT31NaMiPLw6gQczoHRHxpZLESvtUCOvSoQFrDRgTcad3JQAPVgk8w0Rb9YzOb_znZMV_g-img-110.jpg", # 1 year
+    photos_path + "/ABNe77Cq3YsFP5oVHJCooVXKCKcVkRBTCVlpDI43c4angZUMJ9YAe3VuCinlJZZJMvhpINd4JsE3jTcF-IOX1k_UlDTYdBgwtQ-IMG_9419.jpg",
+    photos_path + "/ABNe77A9vTKlbvG-y99K39KG5lkBh8fklFUUXMWXzjHx1v7EpkH0qTY_aBnrSHMbNXll6nx3YXrXYlUq_ubHBTwwt4Rz_6w6MQ-img-117.jpg",
+    photos_path + "/ABNe77Dx_AS8o7S3tGszmD_Im9ZNK2vUNYPPZJp5L7bcGofpkE246-6wysSRM-aetf0zyULW5FMdUX_77Irna83jhFW1SZfurg-IMG_9375.converted.jpg"
     ])
 find_and_store_faces()
+'''
 remove_photo_clusters()
 write_movie()
 
